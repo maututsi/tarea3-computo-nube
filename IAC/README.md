@@ -48,8 +48,6 @@ Formas de asignar `db_password`:
    export TF_VAR_db_password="UnaContrasenaSegura123"
    ```
 
-> La contraseña queda guardada en texto plano en `terraform.tfstate`. No compartas ese archivo; también está en `.gitignore`.
-
 Otros valores fijos que puedes cambiar directamente en el código: la región (`us-east-1` en `main.tf`), el par de llaves SSH de la EC2 (`key_name = "llave1"` en `ec2.tf`, debe existir en la región) y el nombre y el puerto de la app (`locals` en `ecs.tf`).
 
 ## Uso
@@ -64,20 +62,3 @@ terraform apply
 ```
 
 > La imagen `latest` debe existir en ECR antes de que las tareas de ECS puedan arrancar. Si es la primera vez, crea primero el repositorio con `terraform apply -target=aws_ecr_repository.app`, sube la imagen (manualmente o con el pipeline, ver `APP/README.md`) y después ejecuta el `terraform apply` completo.
-
-### Outputs
-
-| Output | Descripción |
-|---|---|
-| `alb_url` | URL pública de la aplicación |
-| `ec2_public_ip` / `ec2_url` | IP y URL de la instancia EC2 con nginx |
-| `ecr_repository_url` | URL del repositorio ECR |
-| `rds_endpoint`, `rds_port`, `rds_db_name` | Datos de conexión a MySQL |
-
-### Destruir la infraestructura
-
-Los NAT Gateways, el ALB y Fargate cobran por hora. Al terminar:
-
-```bash
-terraform destroy
-```
