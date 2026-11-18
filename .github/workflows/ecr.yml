@@ -34,8 +34,10 @@ jobs:
             echo "tags=${GITHUB_SHA} latest" >> "$GITHUB_OUTPUT"
           fi
 
+      # --provenance/--sbom=false: sube una sola imagen y no un índice con
+      # manifiestos extra, que la regla de "conservar 2" contaría como imágenes
       - name: Construir la imagen
-        run: docker build --platform linux/amd64 -t app:ci APP
+        run: docker build --platform linux/amd64 --provenance=false --sbom=false -t app:ci APP
 
       - name: Aviso si falta configurar AWS
         if: vars.AWS_ROLE_ARN == ''
