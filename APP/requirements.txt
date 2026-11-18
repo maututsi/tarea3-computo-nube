@@ -1,0 +1,3 @@
+# [rsa] instala cryptography, necesario para el método de autenticación
+# caching_sha2_password que usa MySQL 8.4 por defecto
+PyMySQL[rsa]>=1.1,<2

@@ -1,0 +1,67 @@
+name: Build y push a ECR
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# id-token: write permite pedir el token OIDC para asumir el rol de AWS
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: app-tarea3
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v5
+
+      # push a main  -> <sha> y latest (latest es la que usa ECS)
+      # pull request -> pr-<número>-<sha corto>, sin tocar latest
+      - name: Calcular etiquetas
+        id: tags
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "tags=pr-${{ github.event.number }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=${GITHUB_SHA} latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Construir la imagen
+        run: docker build --platform linux/amd64 -t app:ci APP
+
+      - name: Aviso si falta configurar AWS
+        if: vars.AWS_ROLE_ARN == ''
+        run: |
+          echo "::warning::La variable AWS_ROLE_ARN no está configurada; la imagen se construyó pero no se subió a ECR."
+
+      - name: Credenciales de AWS (OIDC)
+        if: vars.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Iniciar sesión en ECR
+        if: vars.AWS_ROLE_ARN != ''
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Etiquetar y subir la imagen
+        if: vars.AWS_ROLE_ARN != ''
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAGS: ${{ steps.tags.outputs.tags }}
+        run: |
+          for tag in $TAGS; do
+            docker tag app:ci "$REGISTRY/$ECR_REPOSITORY:$tag"
+            docker push "$REGISTRY/$ECR_REPOSITORY:$tag"
+            echo "Subida: $REGISTRY/$ECR_REPOSITORY:$tag" >> "$GITHUB_STEP_SUMMARY"
+          done

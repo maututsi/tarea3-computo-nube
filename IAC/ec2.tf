@@ -1,0 +1,59 @@
+# ---------------------------------------------------------------------------
+# AMI de Ubuntu 24.04 LTS (la más reciente publicada por Canonical)
+# ---------------------------------------------------------------------------
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Instancia EC2 con nginx
+# ---------------------------------------------------------------------------
+resource "aws_instance" "web" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public_a.id
+  key_name                    = "llave1" # Par de llaves existente en us-east-1
+  vpc_security_group_ids      = [aws_security_group.web.id]
+  associate_public_ip_address = true
+
+  user_data = <<-EOF
+    #!/bin/bash
+    apt-get update -y
+    apt-get install -y nginx
+    systemctl enable nginx
+    systemctl start nginx
+  EOF
+
+  tags = {
+    Name = "ec2-web-nginx"
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Salidas
+# ---------------------------------------------------------------------------
+output "ec2_public_ip" {
+  description = "IP pública de la instancia web"
+  value       = aws_instance.web.public_ip
+}
+
+output "ec2_url" {
+  description = "URL para ver la página de nginx"
+  value       = "http://${aws_instance.web.public_ip}"
+}
