@@ -19,3 +19,4 @@ Infraestructura en **Terraform** que despliega en AWS (`us-east-1`, zonas `us-ea
 ## Variables que requieren asignación
 
 * **`db_password`:** contraseña del administrador de MySQL; mínimo 8 caracteres, sin `/`, `"`, `@` ni espacios. Si no se asigna, Terraform la pide al ejecutar `terraform apply`. También puede ir en `terraform.tfvars` (`db_password = "..."`) o en la variable de entorno `TF_VAR_db_password`.
+* **`key_name` (en `ec2.tf`):** nombre del par de llaves de la EC2, fijo en el código como `"llave1"`. Para acceder a la instancia por SSH se debe cambiar por el nombre de un par de llaves propio que exista en `us-east-1`.
