@@ -1,10 +1,14 @@
 # ---------------------------------------------------------------------------
 # Acceso de GitHub Actions a AWS mediante OIDC (sin llaves de acceso)
 # ---------------------------------------------------------------------------
-variable "github_repo" {
-  description = "Repositorio de GitHub (usuario/repositorio) que puede subir imágenes a ECR"
+# GitHub usa "subject claims" inmutables: incluyen el ID del usuario y del repo,
+# así que el permiso no se puede heredar si alguien recrea un repo con el mismo
+# nombre. Se consulta con:
+#   gh api repos/<usuario>/<repo>/actions/oidc/customization/sub
+variable "github_oidc_sub_prefix" {
+  description = "Prefijo del claim sub del token OIDC del repositorio de GitHub"
   type        = string
-  default     = "maututsi/tarea3-computo-nube"
+  default     = "repo:maututsi@184404345/tarea3-computo-nube@1463357007"
 }
 
 # Proveedor de identidad de GitHub. Solo puede existir uno por cuenta de AWS;
@@ -35,8 +39,8 @@ resource "aws_iam_role" "github_actions_ecr" {
           }
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:${var.github_repo}:ref:refs/heads/main",
-              "repo:${var.github_repo}:pull_request",
+              "${var.github_oidc_sub_prefix}:ref:refs/heads/main",
+              "${var.github_oidc_sub_prefix}:pull_request",
             ]
           }
         }
