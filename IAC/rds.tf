@@ -8,9 +8,22 @@ variable "db_username" {
 }
 
 variable "db_password" {
-  description = "Contraseña del usuario administrador (mínimo 8 caracteres)"
+  description = "Contraseña del administrador (opcional; si se deja en null se genera una aleatoria)"
   type        = string
   sensitive   = true
+  default     = null
+}
+
+# Contraseña aleatoria para que terraform plan/apply no requieran asignar nada.
+# RDS no permite / " @ ni espacios, así que se limitan los caracteres especiales.
+resource "random_password" "db" {
+  length           = 20
+  special          = true
+  override_special = "!#$%^&*()-_=+[]{}<>:?"
+}
+
+locals {
+  db_password = coalesce(var.db_password, random_password.db.result)
 }
 
 # ---------------------------------------------------------------------------
@@ -40,7 +53,7 @@ resource "aws_db_instance" "mysql" {
 
   db_name  = "appdb"
   username = var.db_username
-  password = var.db_password
+  password = local.db_password
   port     = 3306
 
   db_subnet_group_name   = aws_db_subnet_group.mysql.name
@@ -74,4 +87,10 @@ output "rds_port" {
 output "rds_db_name" {
   description = "Nombre de la base de datos inicial"
   value       = aws_db_instance.mysql.db_name
+}
+
+output "rds_password" {
+  description = "Contraseña del administrador de MySQL (terraform output -raw rds_password)"
+  value       = local.db_password
+  sensitive   = true
 }

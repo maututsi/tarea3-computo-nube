@@ -132,7 +132,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "DB_PORT", value = tostring(aws_db_instance.mysql.port) },
         { name = "DB_NAME", value = aws_db_instance.mysql.db_name },
         { name = "DB_USER", value = var.db_username },
-        { name = "DB_PASSWORD", value = var.db_password },
+        { name = "DB_PASSWORD", value = local.db_password },
       ]
 
       logConfiguration = {

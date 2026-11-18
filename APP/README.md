@@ -23,3 +23,6 @@ Después se abre http://localhost:8080. Para borrar todo: `docker rm -f app-loca
 ## Pipeline
 
 El pipeline está en [`.github/workflows/ecr.yml`](../.github/workflows/ecr.yml), en la raíz del repositorio. Se ejecuta con GitHub Actions en cada push o pull request a `main`, construye la imagen de esta carpeta y la sube al repositorio ECR `app-tarea3`.
+
+* **Secrets necesarios:** `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` de un usuario IAM con permiso para subir imágenes a ECR, en Settings → Secrets and variables → Actions. Sin ellos, el pipeline construye la imagen pero no la sube.
+* **Actualizar la app en ECS:** las tareas que ya corren no toman la imagen nueva solas; después del pipeline se ejecuta `aws ecs update-service --region us-east-1 --cluster app-cluster --service app-service --force-new-deployment`.
