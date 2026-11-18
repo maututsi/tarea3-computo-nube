@@ -5,10 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
-# id-token: write permite pedir el token OIDC para asumir el rol de AWS
 permissions:
-  id-token: write
   contents: read
 
 env:
@@ -18,6 +17,10 @@ env:
 jobs:
   build-push:
     runs-on: ubuntu-latest
+
+    env:
+      # Los secrets no se pueden usar directo en un "if", así que se resume aquí
+      HAS_AWS_KEYS: ${{ secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '' }}
 
     steps:
       - name: Descargar el código
@@ -39,25 +42,26 @@ jobs:
       - name: Construir la imagen
         run: docker build --platform linux/amd64 --provenance=false --sbom=false -t app:ci APP
 
-      - name: Aviso si falta configurar AWS
-        if: vars.AWS_ROLE_ARN == ''
+      - name: Aviso si faltan las llaves de AWS
+        if: env.HAS_AWS_KEYS != 'true'
         run: |
-          echo "::warning::La variable AWS_ROLE_ARN no está configurada; la imagen se construyó pero no se subió a ECR."
+          echo "::warning::Faltan los secrets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY; la imagen se construyó pero no se subió a ECR."
 
-      - name: Credenciales de AWS (OIDC)
-        if: vars.AWS_ROLE_ARN != ''
+      - name: Credenciales de AWS
+        if: env.HAS_AWS_KEYS == 'true'
         uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Iniciar sesión en ECR
-        if: vars.AWS_ROLE_ARN != ''
+        if: env.HAS_AWS_KEYS == 'true'
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Etiquetar y subir la imagen
-        if: vars.AWS_ROLE_ARN != ''
+        if: env.HAS_AWS_KEYS == 'true'
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           TAGS: ${{ steps.tags.outputs.tags }}
