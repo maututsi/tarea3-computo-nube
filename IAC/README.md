@@ -2,31 +2,6 @@
 
 Infraestructura como código, hecha con **Terraform**, que despliega en AWS (región `us-east-1`) una aplicación web en contenedores conectada a una base de datos MySQL. La red usa dos zonas de disponibilidad (`us-east-1a` y `us-east-1b`). La aplicación corre en **ECS Fargate** detrás de un **Application Load Balancer**, toma su imagen de **ECR** y lee la versión de MySQL de una base de datos **RDS**.
 
-## Arquitectura
-
-```
-                    Internet
-                       │
-              ┌────────▼────────┐
-              │ Internet Gateway│
-              └────────┬────────┘
-   ┌───────────────────┼─────────────────────┐  VPC 10.0.0.0/16
-   │  Subnets públicas │ (10.0.1.0/24, 10.0.2.0/24)
-   │   ┌───────────────▼──────────────┐      │
-   │   │ Application Load Balancer    │      │   EC2 nginx (t3.micro)
-   │   └───────────────┬──────────────┘      │   NAT Gateway 1a / 1b
-   │                   │ solo desde el ALB   │
-   │  Subnets privadas │ (10.0.11.0/24, 10.0.12.0/24)
-   │   ┌───────────────▼──────────────┐      │
-   │   │ ECS Fargate: 2 tareas (1a/1b)│──────┼──► ECR (imagen) y CloudWatch (logs), vía NAT
-   │   └───────────────┬──────────────┘      │
-   │                   │ 3306                │
-   │   ┌───────────────▼──────────────┐      │
-   │   │ RDS MySQL 8.4 (db.t3.micro)  │      │
-   │   └──────────────────────────────┘      │
-   └─────────────────────────────────────────┘
-```
-
 ## Servicios de AWS que utiliza
 
 | Servicio | Recursos | Para qué |
